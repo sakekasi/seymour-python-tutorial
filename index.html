@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Seymour: Live Programming for the Classroom</title>
+    <link rel="stylesheet" href="tufte.css"/>
+    <link rel="stylesheet" href="latex.css"/>
+    <link rel="stylesheet" href="style.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+    <link rel="manifest" href="favicon/manifest.json">
+    <link rel="mask-icon" href="favicon/safari-pinned-tab.svg" color="#2b5797">
+    <link rel="shortcut icon" href="favicon/favicon.ico">
+    <meta name="msapplication-config" content="favicon/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Global Site Tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-107764499-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-107764499-1');
+    </script>
+
+  </head>
+
+  <body>
+    <article>
+      <h1 id="title">Seymour: Live Programming for the Classroom</h1>
+      <p class="subtitle">Saketh Kasibatla and Alex Warth<br>
+      HARC/Y Combinator Research</p>
+
+      <section>
+      <p>
+        <b>This web essay has only been tested on the latest version of Google Chrome, and has not been optimized for mobile phones.<span id="non-chrome-disclaimer">This essay is also interactive. To interactively edit the examples shown in each figure, please visit this page with Google Chrome version 61 or greater.</span></b>
+      </p>
+      </section>
+
+      <section id="abstract">
+        <blockquote>We want to create a better programming experience for learning and teaching programming. This paper describes Seymour, a live programming environment that features two visualizations of a program’s execution. One shows the execution’s details and another depicts it at a high level. These two visualizations come together to create a compelling user experience that we plan to test and improve with student feedback.</blockquote>
+      </section>
+      <section>
+        <h2><span class="sectionNumber"></span>Introduction</h2>
+        <p>
+        The live programming community has produced many inspiring visions of programming, but we have yet to see these ideas significantly impact how we program today. There are substantial design and engineering problems that stand in the way of creating live programming experiences fit for widespread adoption. It may be too difficult to make an experience scale to the needs of programmers at large in one shot. Perhaps we can solve a smaller version of the problem and adapt some of the techniques we develop to a broader solution. We are developing an environment that aims to provide a better programming experience for an undergraduate intro to programming course.
+        </p>
+
+        <p>
+        There are several advantages that this use case affords us. First, programs that students write are far smaller and less complex than those written for commercial purposes. They are also guided by a class curriculum, including homework assignments and projects. This allows us to create new experiences without having to design and optimize for very large programs. Furthermore, because the teacher controls class assignments, we can tailor the system to each assignment, instead of attempting to create a fully general experience. Even if our programming experience fails to scale to be useful in the ‘real world,’ it has the potential to help students overcome programming’s steep learning curve.
+        </p>
+
+        <p>
+        This paper presents Seymour, an early prototype that follows this strategy. The goal of Seymour is to help beginners develop an intuition for program semantics, and encourage experimentation. We do this by providing a visualization of a program (rendered as the student writes it) that tells a cohesive story. Students and teachers spend significant time simulating the behavior of a program (mentally, or on paper), often erroneously. An automated method to create visual explanations of these programs can significantly ease the mental burden of teachers and students alike when introduced in the right context, e.g., by having the professor and students draw the visualization before transitioning to a <span>computer-generated version.<label for="sorva-thesis" class="margin-toggle"></label></span><input type="checkbox" id="sorva-thesis" class="margin-toggle">
+        <span class="marginnote">
+          <a href="http://urn.fi/URN:ISBN:978-952-60-4626-6" target="_blank">Juha Sorva. <em>Visual Program Simulation in Introductory Programming Education</em></a> @section 11.2
+        </span>
+        </p>
+
+        <p>This paper contributes a <span>multiple view<label for="multiple-views" class="margin-toggle"></label></span><input type="checkbox" id="multiple-views" class="margin-toggle">
+        <span class="marginnote">
+          <a href="http://dx.doi.org/10.1145/345513.345271" target="_blank">Wang Baldonado et.al. &ldquo;Guidelines for Using Multiple Views in Information Visualization&rdquo;</a>
+        </span> visualization of program execution with two parts:</p>
+
+        <ul>
+          <li>a <em class="keyword">micro visualization</em> that shows line-by-line details about the program’s execution, including readable stories for arbitrary control structures and summaries of expressions’ side effects, and
+          </li>
+          <li>a <em class="keyword">macro visualization</em> that serves as an overview of the program’s execution, and can be used as a tool to <em class="keyword">focus</em> on different points in the execution.</li>
+        </ul>
+
+        <p>
+        This is a vision paper that describes Seymour&rsquo;s macro and micro visualizations and how they come together to create a compelling live programming experience. We intend to discuss the technical details of Seymour&rsquo;s implementation in a subsequent paper.
+        </p>
+      </section>
+      <section>
+        <h2><span class="sectionNumber"></span>The Programming Environment</h2>
+        <p>
+        Seymour’s programming environment consists of three different components, as shown in the screenshot below:
+        </p>
+
+        <figure id="overview">
+          <label for="mn-language" class="margin-toggle no-star"></label><input type="checkbox" id="mn-language" class="margin-toggle"><span class="marginnote">The prototype shown in this paper relies on our own language&mdash;an unholy combination of JavaScript and Smalltalk. Before using Seymour in classrooms, we plan to adapt it to use Python instead. See the <a href="#futurework">future work section</a> for more details.</span>
+          <img class="block light-bg-protect" src="media/overview.png"></img>
+        </figure>
+
+        <p>
+        These are:
+        </p>
+
+
+        <ul>
+          <li>the code editor (top left);</li>
+          <li>the <em class="keyword">micro visualization</em> (top right), which provides details about the activation of a method or function; and</li>
+          <li>the <em class="keyword">macro visualization</em> (bottom), which provides an overview of the entire program&rsquo;s execution.</li>
+        </ul>
+
+        <p>
+        These components help the programmer see and understand the dynamic behavior of their code even while they are writing it.
+        </p>
+
+        <h3>The Micro Visualization</h3>
+        <p>
+        The micro visualization displays details about the execution of the code. These details are shown next to the lines of code that produced them, and they are updated as the programmer makes <span>changes to the code.<label for="interact-1" class="margin-toggle no-star"></label></span><input type="checkbox" id="interact-1" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="video1">
+          Try changing the &lsquo;0&rsquo; to a &lsquo;2&rsquo; below
+        </span>
+        </p>
+
+        <figure id="video1" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="65"
+              poster="./media/micro_viz_example/1.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/micro_viz_example/1.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('video1')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('video1')">reset</a>
+              <a href="javascript:swapInteractive('video1')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+
+        <p>
+        Each subexpression in the program is rendered as a blue dot. To see the value of a subexpression, the programmer simply hovers over its <span>corresponding blue dot.<label for="interact-2" class="margin-toggle no-star"></label></span><input type="checkbox" id="interact-2" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="video2">
+          Try hovering over the <span style="color: hsl(219, 79%, 66%)">▪</span>&rsquo;s next to <code>avg</code>
+        </span>
+        </p>
+
+        <figure id="video2" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="120.5"
+              poster="./media/micro_viz_example/2.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/micro_viz_example/2.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('video2')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('video2')">reset</a>
+              <a href="javascript:swapInteractive('video2')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        The micro visualization displays loops using a columnar format, where each column represents an iteration of the loop. The programmer can read through a row to see all of the effects from a line of code over time, or read through a column to see what happened in a particular iteration.
+        </p>
+
+        <figure id="video4" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="132.5"
+              poster="./media/micro_viz_example/4.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/micro_viz_example/4a.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('video4')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('video4')">reset</a>
+              <a href="javascript:swapInteractive('video4')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        Because Seymour only shows effects for code that is executed, it is easy to <span>&ldquo;follow the flow&rdquo;<label for="mn-learnable" class="margin-toggle"></label></span>
+        <input type="checkbox" id="mn-learnable" class="margin-toggle"><span class="marginnote">
+          <a href="http://worrydream.com/LearnableProgramming/">Bret Victor. &ldquo;Learnable Programming&rdquo;</a>
+        </span>
+        of the <span>program over time.<label for="interact-3" class="margin-toggle no-star"></label></span><input type="checkbox" id="interact-3" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="video5">
+          Try scrolling the micro visualization to the right
+        </span>
+        </p>
+
+        <figure id="video5" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="170.5"
+              poster="./media/micro_viz_example/5.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/micro_viz_example/5.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('video5')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('video5')">reset</a>
+              <a href="javascript:swapInteractive('video5')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <!-- <figure id="env2">
+          <label for="mn-hover" class="margin-toggle"></label><input type="checkbox" id="mn-hover" class="margin-toggle"><span class="marginnote">hovering over message sends (e.g., the loop, blue dots) highlights the code that produced them and shows their return value</span>
+          <div id="microVizContainer2"></div>
+          <div id="errorDiv2"></div>
+        </figure>  -->
+
+        <p>
+        In addition to built-in loop constructs, programmers often rely on user-defined control structures, e.g., <code>map</code>, <code>filter</code>, and
+        <code>reduce</code>.  While these are not loops in the strict sense of the word, they are “loop-like” so the programmer would benefit from visualizing them as such. Seymour automatically detects loopy behavior and provides a columnar visualization for it, as shown below. In fact, all built-in control structures in Seymour&rsquo;s language are simply message sends/method calls (as in Smalltalk) and are rendered in a columnar manner using the same loop mechanism&mdash;i.e., there is no special handling for built-in control structures.
+        </p>
+
+        <figure id="reduce">
+          <label for="mn-emoji" class="margin-toggle no-star"></label><input type="checkbox" id="mn-emoji" class="margin-toggle"><span class="marginnote">We use emoji to identify different objects, instead of memory addresses or object IDs.</span>
+          <img class="block light-bg-protect figure" src="media/reduce.png"></img>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('reduce')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('reduce')">reset</a>
+              <a href="javascript:swapInteractive('reduce')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        Note that the call to <code>reduce()</code> is rendered as a loop even though its implementation is recursive. A detailed description of our mechanism for detecting loopiness and Seymour&rsquo;s micro visualization will be the subject of an upcoming paper.
+        </p>
+
+        <p>
+        While creating the micro visualization, we sought to mitigate users’ mental simulation of the program. Seymour shows every state change, without requiring interaction, so that the user does not have to simulate the program and interactively view parts of the state.
+        </p>
+
+        <p>
+        A method call, in addition to producing a result, can modify program state. If its side effects are not shown, the user must fall back to mentally simulating the program. Consider the <span>program below:<label for="interact-4" class="margin-toggle no-star"></label></span><input type="checkbox" id="interact-4" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="summary">
+          Cmd+click on <code style="color: hsla(0, 0%, 18%, 0.5); background-color: rgba(100, 149, 237, 0.05); box-shadow: 1px 1px 2px #ddd;">(a = 7)</code> to see the details of <code>f()</code>
+        </span>
+        </p>
+
+        <figure id="summary">
+          <img class="block light-bg-protect figure" src="media/summary.png"></img>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('summary')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('summary')">reset</a>
+              <a href="javascript:swapInteractive('summary')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        Because the call to <code>f()</code> is preceded by a statement that increments <code>a</code>, and followed by a statement that decrements it, the user might expect <code>a</code> to be <code>5</code> at the end of the program. If Seymour did not show that <code>f()</code> set <code>a</code> to <code>7</code>, the user would need to read <code>f()</code>’s source to figure out why <code>a</code> is not <code>5</code>. Because <code>f()</code>’s side effects are shown, the user can confirm at a glance that <code>a = 6</code> because <code>f()</code> set <code>a</code> to <code>7</code> before it was decremented.
+        </p>
+
+        <p>
+        For each call, all side effects that are relevant to the execution are summarized. The micro visualization shows the last value of variables that are written multiple times, and hides the values of local variables that do not affect computation past the duration of the call. In the example below, we only show <code>a</code>&rsquo;s final value, and <code>b = 7</code> does not appear in <code>f()</code>&rsquo;s <span>summary.<label for="interact-5" class="margin-toggle no-star"></label></span><input type="checkbox" id="interact-5" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="summary-2">
+          Cmd+click on <code style="color: hsla(0, 0%, 18%, 0.5); background-color: rgba(100, 149, 237, 0.05); box-shadow: 1px 1px 2px #ddd;">(a = 6)</code> to see the details of <code>f()</code>
+        </span>
+        </p>
+
+        <figure id="summary-2">
+          <img class="block light-bg-protect figure" src="media/summary-2.png"></img>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('summary-2')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('summary-2')">reset</a>
+              <a href="javascript:swapInteractive('summary-2')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        A call&rsquo;s summary elides most of its implementation details in order to give the user &lsquo;just enough&rsquo; information to continue reading the story of the execution. If the user is interested in these details, Seymour can show the story of any call. In fact, the whole program is treated as a call and its implementation details are displayed like those of any other call, such as the call to <span><code>add5()</code> below.<label for="interact-5" class="margin-toggle"></label></span><input type="checkbox" id="interact-5" class="margin-toggle">
+        <span class="marginnote interact" interactiveId="adder">
+          Cmd+click on the <span style="color: hsl(219, 79%, 66%)">▪</span> next to <code>ans</code> to see the details of the block call
+        </span>
+        </p>
+
+        <figure id="adder">
+          <img class="block light-bg-protect figure" src="media/adder.png"></img>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv"></div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('adder')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('adder')">reset</a>
+              <a href="javascript:swapInteractive('adder')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        When visualizing a call, we also show all lexical scopes that the callee (i.e., a method or a block) has access to. All the information needed to calculate the call&rsquo;s result is on screen, and the method only has access to the values it can &lsquo;see&rsquo;. In the program above, which visualizes the call to  <code>add5()</code> on line 8, Seymour shows the value of <code>this</code> that <code>add5()</code> has access to, explaining why it returns <code>11</code>.
+        </p>
+
+        <h3>The Macro Visualization</h3>
+
+        <p>
+        Seymour&rsquo;s micro visualization can show any single call in the program. However, views of disconnected calls are not enough to completely understand the program. Programmers need a low-level understanding of individual calls <em>and</em> a high-level understanding of how they are related.
+        </p>
+
+        <p>
+        The macro visualization helps the user build this high-level understanding by
+        </p>
+
+        <ul>
+          <li>showing overall patterns in the program;</li>
+          <li>serving as a stable, global context to which the micro visualization can be related; and</li>
+          <li>providing a user interface for <em>focusing</em> the micro visualization on different calls.</li>
+        </ul>
+
+        <figure id="screenshot_fib_1">
+          <img class="block light-bg-protect figure" src="media/fib_macro_viz.png"></img>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv divider"></div>
+            <div class="macroVizScroller">
+              <div class="macroVizContainer"></div>
+            </div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('screenshot_fib_1')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('screenshot_fib_1')">reset</a>
+              <a href="javascript:swapInteractive('screenshot_fib_1')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        The visualization is a variation on the <span>icicle plot<label for="icicle" class="margin-toggle"></label></span>
+        <input type="checkbox" id="icicle" class="margin-toggle"><span class="marginnote">
+          <a href="http://dx.doi.org/10.2307/2685881" target="_blank">Kruskal and Landwehr. &ldquo;Icicle Plots: Better Displays for Hierarchical Clustering&rdquo;</a>
+        </span>
+        —a method for visualizing hierarchical data that makes it easy to see the ‘shape’ of a computation. Each method call is drawn as a rectangular node on screen. Time progresses from left to right with clusters of calls acting as landmarks on the program’s timeline. All calls that a method makes are drawn below its node in the visualization. Calls that do not make any further calls (leaf calls) have fixed width, and all other calls are wide enough to contain all of their children; calls with more subcalls are wider than those with fewer subcalls. <span>Google Chrome&rsquo;s DevTools<label for="chrome-dev-tools" class="margin-toggle"></label></span><input type="checkbox" id="chrome-dev-tools" class="margin-toggle">
+        <span class="marginnote">
+          <a href="https://developers.google.com/web/tools/chrome-devtools/evaluate-performance/reference" target="_blank">Google Developers. &ldquo;Performance Analysis Reference&rdquo;</a><br><br>
+          <a href="http://blog.librato.com/posts/chrome-devtools" target="_blank">Librato Blog. &ldquo;Timeline Profiling with Chrome DevTools&rdquo;</a>
+        </span>
+        uses a similar visualization to provide an overview of calls that occur in a profile, but instead of giving leaf calls a fixed width, all calls are scaled based on run time.
+        </p>
+
+        <p>
+        The macro visualization does not change as the user selects different calls, showing every call in the program. However, without further help from the system, it is difficult to connect the time-oriented macro visualization with the code-oriented micro visualization, so Seymour helps the user make this connection with parallel highlighting. When the user hovers over a call in the code, all nodes corresponding to that call in the macro visualization are <span id="codeHighlight">highlighted</span> . Similarly, when the user hovers over a node in the macro visualization, Seymour highlights the <span id="macroDefinitionHighlight">definition</span> and <span id="macroCallHighlight">site</span> of the call in question.
+        </p>
+
+        <figure id="fib_highlighting" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="465.5"
+              poster="./media/fib_highlighting.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/fib_highlighting.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv divider"></div>
+            <div class="macroVizScroller">
+              <div class="macroVizContainer"></div>
+            </div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('fib_highlighting')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('fib_highlighting')">reset</a>
+              <a href="javascript:swapInteractive('fib_highlighting')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+        <p>
+        The visualization is also a user interface for navigating between calls in the micro visualization. When the user clicks on a node in the macro visualization, Seymour focuses the micro visualization on the call associated with that node. This makes it easy for the user to switch between contexts, drill down, and gather detailed information about the program. The currently focused call is colored <span id="macroFocusHighlight">dark blue</span> in the macro visualization, along with <span>all activations whose local variables the callee can access.<label for="toplevel-highlight" class="margin-toggle"></label></span><input type="checkbox" id="toplevel-highlight" class="margin-toggle">
+        <span class="marginnote">
+          Since every call can access the program&rsquo;s global state, the root node of the macro visualization is always highlighted
+        </span>
+        </p>
+
+        <figure id="fib_focus" class="fullwidth">
+          <div class="video-mask figure">
+          <video class="block light-bg-protect" width="960" height="465.5"
+              poster="./media/fib_focus.poster.png"
+              preload="auto" muted="" data-video="0">
+            <source src="./media/fib_focus.mp4" type="video/mp4">
+          </video>
+          </div>
+          <div class="interactive">
+            <div class="microVizContainer"></div>
+            <div class="errorDiv divider"></div>
+            <div class="macroVizScroller">
+              <div class="macroVizContainer"></div>
+            </div>
+          </div> 
+          <div class="controls">
+            <span class="figure">
+              <a href="javascript:swapInteractive('fib_focus')">interact</a>
+            </span>
+            <span class="interactive">
+              <a href="javascript:reset('fib_focus')">reset</a>
+              <a href="javascript:swapInteractive('fib_focus')">back to video</a>
+            </span>
+          </div>
+        </figure>
+
+
+      </section>
+      <section>
+        <h2><span class="sectionNumber"></span>Live Programming with Seymour</h2>
+        <p>
+        In this section, we will give the reader a feel for Seymour’s live programming experience. Several examples show how the macro visualization, the micro visualization, and the ‘focus’ mechanic come together to let the user see the execution of a program as they write it. Each example consists of a video followed by commentary. Click the timestamp at the top of each paragraph to view the relevant portion of the video.
+        </p>
+
+        <h3>Number.fibonacci()</h3>
+
+
+        <p>
+        In the previous section, we saw how a user might interact with a fully written implementation of <code>Number.fibonacci()</code>. This example shows how one might implement <code>fibonacci()</code> by getting several concrete examples working.
+        </p>
+
+        <figure id="video_fib" class="fullwidth scroll">
+          <div class="scroll-wrapper">
+          <div class="contents">
+            <div class="video-mask figure">
+            <video class="block light-bg-protect" width="960" height="473.5"
+                poster="./media/fibonacci.poster.png"
+                preload="auto" muted="" data-video="0">
+              <source src="./media/fib.mp4" type="video/mp4">
+            </video>
+            </div>
+            <div class="interactive">
+              <div class="microVizContainer"></div>
+              <div class="errorDiv divider"></div>
+              <div class="macroVizScroller">
+                <div class="macroVizContainer"></div>
+              </div>
+            </div> 
+            <div class="controls">
+              <span class="figure">
+                <a href="javascript:swapInteractive('video_fib')">interact</a>
+              </span>
+              <span class="interactive">
+                <a href="javascript:reset('video_fib')">reset</a>
+                <a href="javascript:swapInteractive('video_fib')">back to video</a>
+              </span>
+            </div>
+          </div>
+          </div>
+        </figure>
+
+        <p>
+        <a href="#" videoId="video_fib" class="timestamp" start="0:00" end="0:15"></a><br>
+        The user starts by writing a call to <code>fibonacci()</code> and a blank method definition. Initially, the plan is to get <code>5.fibonacci()</code> working.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_fib" class="timestamp" start="0:17" end="0:30"></a><br>
+        Realizing that <code>5.fibonacci()</code>’s result depends on <code>4</code> and <code>3</code>’s results, the user decides to concentrate on <code>1.fibonacci()</code> and <code>2.fibonacci()</code> (the base cases) instead.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_fib" class="timestamp" start="0:32" end="0:45"></a><br>
+        Focusing on <code>2.fibonacci()</code>, the user writes code to handle the base cases. The calls to <code>1.fibonacci()</code> and <code>2.fibonacci()</code> update to show the correct answer. While the user edits the code, the micro visualization <span>remains focused on the same call<label for="managed-time" class="margin-toggle"></label></span>
+        <input type="checkbox" id="managed-time" class="margin-toggle">
+        <span class="marginnote">
+          This technique is described in <a href="http://dx.doi.org/10.1145/2661136.2661145" target="_blank">McDirmid and Edwards&rsquo; &ldquo;Programming with Managed Time,&rdquo;</a> section 3.
+        </span>
+        , allowing them to see how the edits affect the method’s execution.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_fib" class="timestamp" start="0:57" end="1:24"></a><br>
+        Now, they have all the parts necessary to write the rest of the implementation. They focus on <code>3.fibonacci()</code> and implement the recursive case. They can see the results of each recursive call and <span>use that information to complete the implementation.<label for="example-centric" class="margin-toggle"></label></span>
+        <input type="checkbox" id="example-centric" class="margin-toggle">
+        <span class="marginnote">
+          Similar methods for using runtime information are described in Allen&rsquo;s <a href="https://dl.acm.org/citation.cfm?id=542865" target="_blank"><em>Anatomy of Lisp</em></a>, section 6.21 and Edwards&rsquo; <a href="http://dx.doi.org/10.1145/1052883.1052894" target="_blank">&ldquo;Example Centric Programming&rdquo;</a>.
+        </span>
+        </p>
+
+        <h3 id="arr_toString">Array.toString()</h3>
+
+        <p>
+        This example shows how the user can work with loops in Seymour. They will implement <code>Array.toString()</code>, which must include the string representation of element of an array.
+        </p>
+
+        <figure id="video_arr_toString" class="fullwidth">
+          <div class="scroll-wrapper">
+          <div class="contents">
+            <div class="video-mask figure">
+            <video class="block light-bg-protect" width="960" height="315.5"
+                poster="./media/array_toString.poster.png"
+                preload="auto" muted="" data-video="0">
+              <source src="./media/array_toString.mp4" type="video/mp4">
+            </video>
+            </div>
+            <div class="interactive">
+              <div class="microVizContainer"></div>
+              <div class="errorDiv divider"></div>
+              <div class="macroVizScroller">
+                <div class="macroVizContainer"></div>
+              </div>
+            </div> 
+            <div class="controls">
+              <span class="figure">
+                <a href="javascript:swapInteractive('video_arr_toString')">interact</a>
+              </span>
+              <span class="interactive">
+                <a href="javascript:reset('video_arr_toString')">reset</a>
+                <a href="javascript:swapInteractive('video_arr_toString')">back to video</a>
+              </span>
+            </div>
+          </div>
+          </div>
+        </figure>
+
+        <p>
+        <a href="#" videoId="video_arr_toString" class="timestamp" start="0:00" end="0:19"></a><br>
+        Once again, the user calls the method with a couple examples and tries to get them working.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_arr_toString" class="timestamp" start="0:22" end="0:42"></a><br>
+        Writing the implementation continues in much the same manner as the last example. The user realizes that the result must show each element of the array, so they loop. The loop shows the value of each element. These values will be used as building blocks to compute the answer.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_arr_toString" class="timestamp" start="0:42" end="1:17"></a><br>
+        The user takes advantage of the liveness of the environment and experiments with different ways to combining the elements of the array. Initially, they incorrectly prepend <code>sx</code> to <code>ans</code>. After seeing the items appended to <code>ans</code> in reverse order, the user corrects their mistake.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_arr_toString" class="timestamp" start="1:17" end="1:43"></a><br>
+        The user tries out different ways to insert commas between each element. Putting a comma before every element does not work so they do not append a comma before the first element in the array.
+        </p>
+
+        <p>
+        <a href="#" videoId="video_arr_toString" class="timestamp" start="1:43" end="1:47"></a><br>
+        Finally, the user inspects the other call to make sure that the method executes as expected.
+        </p>
+
+      </section>
+      <section id="related-work">
+        <h2><span class="sectionNumber"></span>Related Work</h2>
+
+        <p>
+        In
+        <span>&ldquo;Inventing on Principle,&rdquo;<label for="rw-iop" class="margin-toggle"></label></span><input type="checkbox" id="rw-iop" class="margin-toggle"><span class="marginnote"><a href="https://vimeo.com/36579366#t=16m25s" target="_blank">Bret Victor. &ldquo;Inventing on Principle&rdquo;</a> @16:25</span> Victor introduced a novel visualization of program execution that has heavily influenced the design of Seymour&rsquo;s micro visualization. His visualization displays changes to program state over time with each change lined up with the line of code that produced it. Our micro visualization builds on Victor&rsquo;s visualization and extends it with <em class="keyword">call summaries</em> that enable the programmer to see the side-effects of a call. In Victor&rsquo;s visualization, this information is only available via local expansion (or inlining) of the call,<label for="rw-iop2" class="margin-toggle"></label></span><input type="checkbox" id="rw-iop2" class="margin-toggle"><span class="marginnote"><a href="https://vimeo.com/62049081#t=1m41s" target="_blank">Bret Victor. &ldquo;Showreel 2011&ndash;2012&rdquo;</a> @1:41</span> and because this requires interaction, these side effects (e.g., assignments to global variables) are easy to miss.
+        </p>
+
+        <p>
+        <span>Light Table<label for="rw-lighttable" class="margin-toggle"></label></span><input type="checkbox" id="rw-lighttable" class="margin-toggle"><span class="marginnote"><a href="http://lighttable.com/" target="_blank">Chris Granger. &ldquo;Light Table&rdquo;</a></span> is an IDE that enables programmers to see dynamic (runtime) state inline with source code. It supports <em class="keyword">watches</em> that can be attached to expressions in the code to reveal their latest value as the program is executed. However, if a statement or expression is evaluated many times&mdash;e.g., as part of the body of a function that is called more than once&mdash;Light Table does not let the programmer select the context or activation that is associated with a watch.
+        <span>YinYang<label for="rw-usable" class="margin-toggle"></label></span><input type="checkbox" id="rw-usable" class="margin-toggle"><span class="marginnote"><a href="http://dx.doi.org/10.1145/2509578.2509585" target="_blank">Sean McDirmid. &ldquo;Usable Live Programming&rdquo;</a></span> solves this problem with its <em class="keyword">probes</em> that also enable the programmer to view the values of expressions. Probes are similar to Light Table&rsquo;s watches, but they are associated with an implicit execution context that must be activated through navigation or through a bookmark (created when a <code>print</code> statement is executed). By activating an execution context, the programmer can see the corresponding probe values. With Seymour, the programmer can see the details of any context by selecting it via the macro visualization. But unlike Light Table and YinYang, Seymour shows <em class="keyword">all</em> of the side effects in the selected context automatically, minimizing interaction required to see program state.
+        </p>
+
+        <p>
+        <span>DejaVu is a domain-specific IDE extension for &ldquo;interactive camera-based programs&rdquo;<label for="rw-dejavu" class="margin-toggle"></label></span><input type="checkbox" id="rw-dejavu" class="margin-toggle"><span class="marginnote"><a href="http://dx.doi.org/10.1145/2380116.2380142" target="_blank">Kato et. al. &ldquo;DejaVu: integrated support for developing interactive camera-based programs&rdquo;</a></span> that features a low-level canvas view that shows values of variables in a ‘frame of interest’, and a high-level timeline view that shows variable values for many frames. These views complement each other in a similar manner to the micro and macro visualizations in Seymour. But whereas DejaVu is designed specifically for the domain of camera-based programs and features visualizations tailored for displaying image data, Seymour’s visualizations are designed to explain the semantics of generic programs. We discuss ways to integrate domain specific visualizations with Seymour in the <a href="#futurework">future work section</a>.
+        </p>
+
+        <p>
+        <span>Online Python Tutor<label for="rw-pythontutor" class="margin-toggle"></label></span><input type="checkbox" id="rw-pythontutor" class="margin-toggle"><span class="marginnote">
+          <a href="http://dx.doi.org/10.1145/2445196.2445368" target="_blank">Philip J. Guo. &ldquo;Online Python Tutor: Embeddable Web-Based Program Visualization for CS Education&rdquo;</a><br><br>
+          <a href="http://pythontutor.com/live.html" target="_blank"> Philip J. Guo. &ldquo;Live Programming Mode - Python Tutor&rdquo;</a>
+        </span>, a visualization tool for teaching beginner programmers, features a visualization that shows the entire program’s state at a single point in time.
+        This includes the program counter, the stack, the heap, and relations between objects. Objects are drawn as boxes and are connected by arrows, as a professor might depict them in a classroom.
+        This type of visualization is complementary to those provided by Seymour, and we believe  programmers would benefit from seeing them together.
+        </p>
+      </section>
+      <section id="futurework">
+        <h2><span class="sectionNumber"></span>Future Work</h2>
+        <h3>Classroom Trials</h3>
+
+        <p>
+        We envision Seymour being used as a tool to assist students and professors in an undergraduate intro to programming class. However, Seymour has not been user tested as of the time of this writing, and we have many improvements to make before it is ready to be used to teach a class. We will be showing our programming environment in classrooms in the fall in order to test it on students and adjust our designs based on their feedback. We have access to an intro to programming class and a programming languages class at UCLA, where we will be using Seymour to help students learn Python. 
+        </p>
+
+        <p>
+        To support these trials, we plan to adapt Seymour to use Python as its underlying language. To simplify the process of changing the underlying language, we have developed a language-agnostic library for creating micro and macro visualizations which can work with any imperative language. With this library, adapting Seymour to a new language becomes a simple matter of connecting the language’s runtime to the library. We will discuss this library in detail in an upcoming paper.
+        </p>
+
+        <h3>Better Support for Larger Programs</h3>
+
+        <p>
+        While Seymour’s visualizations work well for small programs, they become harder to use as programs grow in size. With larger programs, such as those students write for a class project, we have found that the micro visualization shows too many low level details, while the macro visualization shows too few. We are interested in improving Seymour’s visualizations to better explain such programs.
+        </p>
+
+        <p>
+        The macro visualization can provide a global view of small programs. However, as program size grows, it becomes too large to read and understand. We are interested in using techniques such as <span>trace pruning<label for="mn-bohnet" class="margin-toggle"></label></span>
+        <input type="checkbox" id="mn-bohnet" class="margin-toggle"><span class="marginnote">
+          <a href="https://publishup.uni-potsdam.de/opus4-ubp/frontdoor/index/index/docId/32254" target="_blank">Johannes Bohnet. <em>Visualization of Execution Traces and its Application to Software Maintenance</em></a>
+        </span>, fisheye, and minimaps to help the user process medium and large programs.
+        </p>
+
+        <p>
+        We would also like to show more low level details in the macro visualization in order to help users better tie the macro and micro visualizations together, and to understand where to focus next. In a previous project (shown below), we visualized the execution of JavaScript methods and let the user annotate the visualization based on low level details (e.g. the value of a variable for a particular call).
+        </p>
+
+        <figure id="clarinet">
+          <img class="block light-bg-protect" src="media/clarinet.png"></img>
+        </figure>
+
+        <p>
+        In this example, which shows a parser generator, characters being consumed are shown in <span id="fw-consumeChar">green</span>, parse errors are shown with <span id="fw-parseError">red text</span>, and calls where the parser backtracked are shown in <span id="fw-backtrack">blue</span>. To create an annotation, the user writes a query that selects the calls they want to annotate (e.g. calls that backtrack, calls that consume a character), and modifies their nodes’ appearance in the visualization. These modifications let the user read the macro visualization for high-level, program-specific patterns, instead of having to interact to find the information they are looking for.
+        </p>
+
+        <p>
+        Another solution we are exploring is to make it easy to create domain specific visualizations from Seymour’s run-time data. These visualizations can display program information at the right level of abstraction to help the user understand the program. Instructors can use such a system to great effect as visualizations can be reused as part of course materials and can be shared with students as explanatory tools. Having computer-generated visualizations tied into the system also eases the tedious and error-prone process of illustrating algorithms on the blackboard.
+        </p>
+
+        <p>
+        Below is a screenshot of an initial attempt at visualizing Dijkstra’s algorithm using information from a running program. We use a timeline to show how a graph is traversed as the algorithm progresses. Red nodes are nodes that have not yet been traversed, and each node’s distance from node a is shown next to the node’s label. This visualization is live and updates as the user changes the code.
+        </p>
+
+        <figure id="dijkstra">
+          <img class="block light-bg-protect" src="media/dijkstra.png"></img>
+        </figure>
+
+        <h3>Language Features for Improved User Understanding</h3>
+
+        <p>Seymour’s user experience can be further improved by adding features to the programming language underlying the system. We are exploring several language extensions that could help the user better understand their programs.</p>
+
+        <p>Micro visualization summaries can become large if the method call being summarized has many side effects. The example below creates an array with all elements from 1 to 10, showing 10 side effects on line 1.</p>
+
+        <figure id="1to10">
+          <img class="block light-bg-protect" src="media/1to10.png"></img>
+        </figure>
+
+        <p>We have begun experimenting with <em class="keyword">modular side effects</em>, a language feature that allows an object to specify how its side effects should be presented to the user. As illustrated above, the micro visualization currently shows all side effects when working with an object. For example, when inserting an element into a red-black tree, the user sees all the rotations the tree conducts to maintain its invariant. With modular side effects, an object can choose how to present its internal state. A red-black tree might present itself as a set, only showing that an element has been inserted, sparing the user an excess of irrelevant details.</p>
+
+        <p>Together with our colleague Jonathan Edwards, we have also started exploring <em class="keyword">interventions</em>&mdash;a mechanism that lets programmers temporarily modify program execution to aid development. In addition to displaying the effects of a call, call summaries can be used to change the program’s execution. If a method call produces an incorrect answer, the user can <em class="keyword">intervene</em> and assert that the method call return the correct value. This assertion can then become a unit test, and its value can be substituted for the call’s return value, allowing the user to make progress on other parts of the program and address the broken method at a later time.</p>
+      </section>
+      <section>
+        <h2><span class="sectionNumber"></span>Conclusion</h2>
+
+        <p>
+        Seymour is a live programming environment that visualizes program execution as the user types. It features a micro visualization that shows details of the program’s execution, and a macro visualization that puts the micro visualization in context, letting the user focus on different parts of the program execution. These visualizations come together to give the user a helpful live programming experience.
+        </p>
+
+        <p>
+        We are excited about the prospect of using this environment in the classroom and learning from student feedback. In doing so, we hope to make Seymour a valuable learning aid for students, and ultimately, create a better user experience for all programmers. 
+        </p>
+      </section>
+
+      <section>
+        <h2>Acknowledgements</h2>
+
+        <p>We would like to thank <a href="https://dubroy.com" target="_blank">Patrick Dubroy</a>, <a href="https://bit.ly/aranlunzer" target="_blank">Aran Lunzer</a>, <a href="https://harc.ycr.org/member/sean_mcdirmid/" target="_blank">Sean McDirmid</a>, <a href="http://web.cs.ucla.edu/~todd/" target="_blank">Todd Millstein</a>, <a href="https://harc.ycr.org/member/yoshiki_ohshima/" target="_blank">Yoshiki Ohshima</a>, and Marko Röder for their valuable feedback on this paper. Also, thanks to <a href="http://worrydream.com/" target="_blank">Bret Victor</a>, <a href="http://tobyschachman.com/" target="_blank">Toby Schachman</a>, <a href="https://tenedor.github.io/me/" target="_blank">Daniel Windham</a>, <a href="http://chaim.io/" target="_blank">Chaim Gingold</a>, <a href="http://alarmingdevelopment.org/" target="_blank">Jonathan Edwards</a>, <a href="http://glench.com/" target="_blank">Glen Chiacchieri</a> and the rest of the gang at <a href="https://harc.ycr.org/" target="_blank">HARC</a> for many invaluable discussions that helped us formulate these ideas.</p>
+
+        <p>This web essay uses <a href="https://mozilla.github.io/Fira/" target="_blank">Fira Sans, Fira Mono</a> and <a href="http://equityfont.com" target="_blank">Equity</a> as its title, code and body fonts respectively. It uses CSS stylesheets based on <a href="https://edwardtufte.github.io/tufte-css/" target="_blank">tufte-css</a>. Its favicon is the rocket emoji from the <a href="https://mozilla.github.io/fxemoji/" target="blank">fxemoji</a> collection. It also uses the open-source libraries <a href="https://github.com/pdubroy/checked-emitter" target="_blank">checked-emitter</a>, <a href="https://codemirror.net/" target="_blank">codemirror</a>, <a href="https://jquery.com/" target="_blank">jquery</a>, <a href="https://ohmlang.github.io/" target="_blank">ohm</a>, <a href="http://underscorejs.org/" target="_blank">underscore.js</a>, and <a href="https://faisalman.github.io/ua-parser-js/" target="_blank">ua-parser-js</a>.</p>
+      </section>
+      <section id="references">
+        <h2>References</h2>
+
+        <ol class="fullwidth">
+        <li>
+          John Allen. 1978. <em>Anatomy of LISP</em>. McGraw Hill, Inc., New York, NY, USA.
+        </li>
+        <li>
+          Kayce Basques. Performance Analysis Reference. Retrieved from <a href="https://developers.google.com/web/tools/chrome-devtools/evaluate-performance/reference" target="_blank">https://developers.google.com/web/tools/chrome-devtools/evaluate-performance/reference</a>
+        </li>
+        <li>
+          Johannes Bohnet. 2010. <em>Visualization of Execution Traces and its Application to Software Maintenance</em>. PhD Dissertation. Mathematisch-Naturwissenschaftliche Fakultät / Institut für Informatik, Potsdam. Retrieved from <a href="https://publishup.uni-potsdam.de/opus4-ubp/frontdoor/index/index/docId/32254" target="_blank">https://publishup.uni-potsdam.de/opus4-ubp/frontdoor/index/index/docId/32254</a>
+        </li>
+        <li>
+          Jonathan Edwards. 2004. Example Centric Programming. <em>SIGPLAN Not.</em> 39, 12 (December 2004), 84-91. DOI:<a href="https://dx.doi.org/10.1145/1052883.1052894" target="_blank">https://dx.doi.org/10.1145/1052883.1052894</a>
+        </li>
+        <li>
+          Chris Granger. Light Table. Retrieved from <a href="http://lighttable.com/" target="_blank">http://lighttable.com/</a>
+        </li>
+        <li>
+          Brendan Gregg. Flame Graphs. Retrieved from <a href="http://www.brendangregg.com/flamegraphs.html" target="_blank">http://www.brendangregg.com/flamegraphs.html</a>
+        </li>
+        <li>
+          Philip J. Guo. 2013. Online Python Tutor: Embeddable Web-based Program Visualization for Cs Education. In <em>Proceeding of the 44th ACM Technical Symposium on Computer Science Education</em> (SIGCSE &rsquo;13), 579&ndash;584. DOI: <a href="https://dx.doi.org/10.1145/2445196.2445368" target="_blank">https://dx.doi.org/10.1145/2445196.2445368</a>
+        </li>
+        <li>
+          Philip J. Guo. Live Programming Mode - Python Tutor. Retrieved from <a href="http://pythontutor.com/live.html#mode=edit" target="_blank">http://pythontutor.com/live.html#mode=edit</a>
+        </li>
+        <!-- <li>
+          Christopher Michael Hancock. 2003. <em>Real-time programming and the big ideas of computational literacy</em>. PhD Dissertation. Massachusetts Institute of Technology, Boston. Retrieved from <a href="http://dspace.mit.edu/handle/1721.1/61549" target="_blank">http://dspace.mit.edu/handle/1721.1/61549</a>
+        </li> -->
+        <li>
+          Jun Kato, Sean McDirmid, and Xiang Cao. 2012. DejaVu: Integrated Support for Developing Interactive Camera-based Programs. In <em>Proceedings of the 25th Annual ACM Symposium on User Interface Software and Technology</em> (UIST &rsquo;12), 189&ndash;186. DOI: <a href="https://dx.doi.org/10.1145/2380116.2380142" target="_blank">https://dx.doi.org/10.1145/2380116.2380142</a>
+        </li>
+        <li>
+          J. B. Kruskal and J. M. Landwehr. 1983. Icicle Plots: Better Displays for Hierarchical Clustering. <em>The American Statistician</em> 37, 2 (1983), 162&ndash;168. DOI: <a href="https://dx.doi.org/10.2307/2685881" target="_blank">https://dx.doi.org/10.2307/2685881</a>
+        </li>
+        <li>
+          Sean McDirmid. 2013. Usable Live Programming. In <em>Proceedings of the 2013 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming & Software</em> (Onward! 2013), 53&ndash;62. DOI: <a href="https://dx.doi.org/10.1145/2509578.2509585" target="_blank">https://dx.doi.org/10.1145/2509578.2509585</a>
+        </li>
+        <!-- <li>
+          Sean McDirmid. 2016. The Promise of Live Programming. In <em>Proceedings of the Workshow on Live Programming</em> (LIVE 2016). Retrieved from <a href="http://2016.ecoop.org/event/live-2016-the-promise-of-live-programming" target="_blank">http://2016.ecoop.org/event/live-2016-the-promise-of-live-programming</a>
+        </li> -->
+        <li>
+          Sean McDirmid and Jonathan Edwards. 2014. Programming with Managed Time. In <em>Proceedings of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming & Software</em> (Onward! 2014), 1&ndash;10. DOI: <a href="https://dx.doi.org/10.1145/10.1145/2661136.2661145" target="_blank">https://dx.doi.org/10.1145/10.1145/2661136.2661145</a>
+        </li>
+        <li>
+          Juha Sorva. 2012. <em>Visual program simulation in introductory programming education</em>. PhD Dissertation. Aalto University. Retrieved from DOI: <a href="https://aaltodoc.aalto.fi:443/handle/123456789/3534" target="_blank">https://aaltodoc.aalto.fi:443/handle/123456789/3534</a>
+        </li>
+        <li>
+          Bret Victor. 2012. Inventing on Principle. Retrieved from <a href="https://vimeo.com/36579366" target="_blank">https://vimeo.com/36579366</a>
+        </li>
+        <li>
+          Bret Victor. 2012. Learnable Programming. Retrieved from <a href="http://worrydream.com/LearnableProgramming/" target="_blank">http://worrydream.com/LearnableProgramming/</a>
+        </li>
+        <li>
+          Bret Victor. 2013. <em>Showreel 2011&ndash;2012</em>. Retrieved from <a href="https://vimeo.com/62049081#t=1m41s" target="_blank">https://vimeo.com/62049081#t=1m41s</a>
+        </li>
+        <li>
+          Michelle Q. Wang Baldonado, Allison Woodruff, and Allan Kuchinsky. 2000. Guidelines for Using Multiple Views in Information Visualization. In <em>Proceedings of the Working Conference on Advanced Visual Interfaces</em> (AVI &rsquo;00), 110&ndash;119. DOI: <a href="https://dx.doi.org/10.1145/345513.345271" target="_blank">https://dx.doi.org/10.1145/345513.345271</a>
+        </li>
+        <li>
+          Timeline Profiling with Chrome DevTools. <em>Librato Blog</em>. Retrieved from <a href="http://blog.librato.com/posts/chrome-devtools">http://blog.librato.com/posts/chrome-devtools</a>
+        </li>
+        </ol>
+
+      </section>
+    </article>
+
+    <!-- 3rd-party stuff -->
+    <script src="seymour/3rdparty/ohm.min.js"></script>
+    <script src="seymour/3rdparty/jquery-3.2.1.min.js"></script>
+    <script src="seymour/3rdparty/codemirror.js"></script>
+    <script src="seymour/3rdparty/checked-emitter.js"></script>
+    <script src="seymour/3rdparty/underscore.js"></script>
+    <link rel="stylesheet" href="seymour/3rdparty/codemirror.css">
+
+    <!-- Language ----------------------------------->
+
+    <!-- the interpreter -->
+    <script src="seymour/lang/activations.js"></script>
+    <script src="seymour/lang/asts.js"></script>
+    <script src="seymour/lang/builtins.js"></script>
+    <script src="seymour/lang/instructions.js"></script>
+    <script src="seymour/lang/Interpreter.js"></script>
+    <script src="seymour/lang/Method.js"></script>
+    <script src="seymour/lang/Obj.js"></script>
+    <script src="seymour/lang/BlockClosure.js"></script>
+    <script src="seymour/lang/Class.js"></script>
+    <script src="seymour/lang/SourceLoc.js"></script>
+
+    <!-- syntax stuff -->
+    <script src="seymour/lang/grammar.js"></script>
+    <script src="seymour/lang/parse.js"></script>
+    <script src="seymour/lang/syntaxHighlight.js"></script>
+    <link rel="stylesheet" href="seymour/syntaxHighlight.css">
+
+    <!-- prelude -->
+    <script src="seymour/lang/prelude.js"></script>
+
+    <!-- Visualizations---------------------------->
+
+    <script src="seymour/viz/Env.js"></script>
+    <script src="seymour/viz/EventRecorder.js"></script>
+    <script src="seymour/viz/MicroVizEvents.js"></script>
+    <script src="seymour/viz/macroViz.js"></script>
+    <script src="seymour/viz/microViz.js"></script>
+    <script src="seymour/viz/events.js"></script>
+    <link rel="stylesheet" href="seymour/viz/microViz.css">
+    <link rel="stylesheet" href="seymour/viz/macroViz.css">
+
+    <!-- pulling it all together -->
+
+    <link rel="stylesheet" href="seymour/seymour.css">
+    <link rel="stylesheet" href="seymour/highlighting.css">
+
+    <script src="seymour/lib.js"></script>
+    <!-- <script src="seymour/setup.js"></script> -->
+    <script src="seymour/highlighting.js"></script>
+    <script src="seymour/pathmatcher.js"></script>
+    <script src="seymour/seymour.js"></script>
+    <script src="third_party/ua-parser-js/dist/ua-parser.min.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>
